@@ -12,6 +12,7 @@ apply plugin: 'war'
 apply plugin: 'idea'
 apply plugin: 'com.bmuschko.tomcat'
 apply plugin: 'findbugs'
+apply plugin: 'jacoco'
 
 group = 'org.gradle.training'
 
@@ -90,3 +91,62 @@ tasks.withType(FindBugs) {
    html.enabled = true   
  }
 }
+
+// lab 9
+
+tasks.withType(Test) {
+    jacoco {
+        enabled = true //project.hasProperty('codeCoverageEnabled') ? Boolean.valueOf(project.getProperty('codeCoverageEnabled')) : false
+    }
+}
+
+ext {
+    jacocoReportsBaseDir = file("$buildDir/reports/jacoco")
+    jacocoReportsExecDir = file("$jacocoReportsBaseDir/exec")
+    jacocoReportsHtmlDir = file("$jacocoReportsBaseDir/html")
+}
+
+test.jacoco.destinationFile = file("$jacocoReportsExecDir/unit.exec")
+integrationTest.jacoco.destinationFile = file("$jacocoReportsExecDir/integration.exec")
+
+jacocoTestReport {
+    reports {
+        html.destination file("$jacocoReportsHtmlDir/unit")
+    }
+}
+
+task jacocoIntegrationTestReport(type: JacocoReport) {
+    executionData integrationTest
+    sourceSets sourceSets.main
+
+    reports {
+        html.destination file("$jacocoReportsHtmlDir/integration")
+    }
+}
+
+// lab 9
+
+war.baseName = 'myapp'
+
+// lab 10
+
+version = new ProjectVersion(1, 4, new Date())
+
+@groovy.transform.TupleConstructor
+class ProjectVersion {
+final Integer major
+final Integer minor
+final def build
+@Override
+String toString() {
+String fullVersion = "$major.$minor"
+if(build) {
+fullVersion += ".${build.format('yyyyMMddHHmmss')}"
+}
+fullVersion
+}
+}
+
+// lab 12
+apply from: "gradle/deployment.gradle"
+
