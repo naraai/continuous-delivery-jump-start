@@ -11,6 +11,7 @@ buildscript {
 apply plugin: 'war'
 apply plugin: 'idea'
 apply plugin: 'com.bmuschko.tomcat'
+apply plugin: 'findbugs'
 
 group = 'org.gradle.training'
 
@@ -19,6 +20,15 @@ targetCompatibility = 1.7
 
 repositories {
     mavenCentral()
+}
+
+sourceSets {
+  integrationTest {
+    java.srcDir "src/integTest/java"
+    resources.srcDir "src/integTest/resources"
+	compileClasspath += sourceSets.main.output + configurations.testRuntime
+	runtimeClasspath += output + compileClasspath
+  }
 }
 
 dependencies {
@@ -31,7 +41,8 @@ dependencies {
     runtime 'jstl:jstl:1.2'
     testCompile 'junit:junit:4.11'
     testCompile 'org.mockito:mockito-all:1.10.8'
-
+    integrationTestCompile 'org.springframework:spring-test:4.1.1.RELEASE'
+	
     def tomcatVersion = '7.0.62'
     tomcat "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}",
            "org.apache.tomcat.embed:tomcat-embed-logging-juli:${tomcatVersion}",
@@ -40,4 +51,42 @@ dependencies {
 
 tomcat {
     contextPath = 'sample-app'
+}
+
+test {
+  reports {
+    html.destination = "$html.destination/unit"
+    junitXml.destination = "$junitXml.destination/unit"
+  }
+  maxParallelForks=2
+  
+  testLogging {
+    events 'skipped'
+  }
+}
+
+task integrationTest(type: Test) {
+  group 'verification'
+  description 'Runs the integration tests'
+  mustRunAfter test
+  testClassesDir = sourceSets.integrationTest.output.classesDir
+  classpath = sourceSets.integrationTest.runtimeClasspath
+  reports {
+    html.destination = file("$reports.html.destination/integration")
+    junitXml.destination = file("$reports.junitXml.destination/integration")
+  }
+}
+
+check.dependsOn integrationTest
+
+findbugs {
+  ignoreFailures = true
+  toolVersion = "3.0.1"
+}
+
+tasks.withType(FindBugs) {
+ reports {
+   xml.enabled = false
+   html.enabled = true   
+ }
 }
